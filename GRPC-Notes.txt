@@ -1,0 +1,164 @@
+GRPC
+----
+This one kind of API.
+This will be very fast API. Wont sent in json or xml, instead it send the data in byte.
+
+It users protocol buffer
+
+Below we can find the details about how to create GRPC backend service
+-------------------------------------------------------------------
+------------------------------------------------------------------
+
+We can create the required API along with payload like below. This proto file will be used to generate java class file or any other language class file
+Eg: user.proto
+--------------
+
+syntax = "proto3";
+
+option java_package = "com.github" ;
+
+service user {
+    rpc login(AccountRequest) returns (LoginLogoutResponse);
+    rpc logout(Empty) returns (LoginLogoutResponse);
+}
+
+message AccountRequest {
+    string name = 1 ;
+    string password = 2 ;
+}
+
+message LoginLogoutResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
+message Empty {
+
+}
+
+
+Need to add below dependencies in the pom to create GRPC service application
+------------------------------------------------------------------
+<dependency>
+    <groupId>com.google.protobuf</groupId>
+    <artifactId>protobuf-java</artifactId>
+    <version>3.23.2</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/io.grpc/grpc-netty-shaded -->
+<dependency>
+    <groupId>io.grpc</groupId>
+    <artifactId>grpc-netty-shaded</artifactId>
+    <version>1.55.3</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/io.grpc/grpc-protobuf -->
+<dependency>
+    <groupId>io.grpc</groupId>
+    <artifactId>grpc-protobuf</artifactId>
+    <version>1.55.3</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/io.grpc/grpc-stub -->
+<dependency>
+    <groupId>io.grpc</groupId>
+    <artifactId>grpc-stub</artifactId>
+    <version>1.55.3</version>
+</dependency>
+
+  
+    <dependency>
+      <groupId>javax</groupId>
+      <artifactId>javaee-api</artifactId>
+      <version>8.0.1</version>
+    </dependency>
+
+
+
+To generate Java files for the proto files:
+--------------------------------------------
+We can use below command to generate the java files
+protoc --plugin=protoc-gen-grpc-java=D:\softwares\proto-java\protoc-gen-grpc-java.exe --grpc-java_out=src\main\java --java_out=src/main/java --proto_path=src/main/resources src/main/resources/user.proto
+
+
+//Note:
+We need to have protoc installed in the system
+WE need to have protoc-gen-grpc-java.exe available in system. We should give along with the path
+
+
+After giving the command we can find required couple of files for each proto. Eg: User.java and userGrpc.java
+
+
+We need to create service class which extends from its ImplBase 
+---------------------------------------------------------------
+He we can add the logic etc
+
+Eg:
+---
+package com.github.service;
+
+import com.github.User.AccountRequest;
+import com.github.User.Empty;
+import com.github.User.LoginLogoutResponse;
+import com.github.userGrpc.userImplBase;
+
+import io.grpc.stub.StreamObserver;
+
+public class UserService extends userImplBase{
+
+    @Override
+    public void login(AccountRequest request, StreamObserver<LoginLogoutResponse> response) {
+        System.out.println("Came inside login");
+        String username = request.getName();
+        String password = request.getPassword();
+        LoginLogoutResponse.Builder responseBuilder = LoginLogoutResponse.newBuilder();
+        if(username.equals(password)){
+            responseBuilder.setStatus(100).setMessage("Successfull");
+        }
+        else {
+            responseBuilder.setStatus(1002).setMessage("Invalid login");
+        }
+        response.onNext(responseBuilder.build());
+        response.onCompleted();
+    }
+
+    @Override
+    public void logout(Empty request, StreamObserver<LoginLogoutResponse> response) {
+        
+    }
+}
+
+
+Create main service class to start the server etc 
+---------------------------------------------------
+
+package com.github.service;
+
+
+import java.io.IOException;
+
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
+
+public class GrpcService {
+
+    public static void main(String[] args) throws InterruptedException, IOException{
+        System.out.println("starting.....GRPC--Service-----");
+
+        Server server = ServerBuilder.forPort(8080).addService(new UserService()).build();
+        server.start();
+        System.out.println("Started.....Successfull");
+        server.awaitTermination();
+    }
+    
+}
+
+
+------------------
+
+Now we can run the main method to run the server
+It will start.
+
+We can test it using postman or any other tools in https://github.com/grpc-ecosystem/awesome-grpc#tools
+
+
+
+--------------------------
+
